@@ -233,9 +233,10 @@ void GoalsNode::process()
 		actionlib::SimpleClientGoalState state = ac.sendGoalAndWait();
 		if(state.StateEnum == actionlib::SimpleClientGoalState::SUCCEEDED)
 		{
-			_currentIdxOfGoal++;
+			
 			//arriveGoal = true;
-			ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);	
+			ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);
+			_currentIdxOfGoal++;	
 		}else
 		{
 			ROS_WARN(" %d position error [ %s ]", _currentIdxOfGoal, state.toString());
