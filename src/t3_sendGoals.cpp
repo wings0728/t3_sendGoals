@@ -205,12 +205,28 @@ void GoalsNode::process()
 		// }
 //----------------------------------------------------------------------------------------------------------
 			
+//<<<<<<< master
+			if(_countOfGoals <= _currentIdxOfGoal)
+				{
+					_currentIdxOfGoal = 0;
+					_idFlag = 1;				// 1 means ++, 0 means --
+				}
+
+
+//			if(setGoal(_posesOfGoals[_currentIdxOfGoal]))
+//			{
+				 // ac.sendGoal(_currentGoal);
+//				ac.sendGoalAndWait(_currentGoal);
+//			}
+			
+//=======
 			// if(setGoal(_posesOfGoals[_currentIdxOfGoal]))
 			// {
 			// 	 ac.sendGoal(_currentGoal);
 			// }
 			setGoal(_posesOfGoals[_currentIdxOfGoal]);
 			ac.sendGoalAndWait(_currentGoal);
+//>>>>>>> master
 			// std::pair<double, std::pair<double, double> > poseOfGoal_(_posesOfGoals[idx]);
 			// std::pair<double, double> locationOfGoal_(poseOfGoal_.second);
 			// double z = poseOfGoal_.first;
