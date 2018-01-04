@@ -205,6 +205,13 @@ void GoalsNode::process()
 		// }
 //----------------------------------------------------------------------------------------------------------
 			
+			if(_countOfGoals <= _currentIdxOfGoal)
+				{
+					_currentIdxOfGoal = 0;
+					_idFlag = 1;				// 1 means ++, 0 means --
+				}
+
+
 			if(setGoal(_posesOfGoals[_currentIdxOfGoal]))
 			{
 				 // ac.sendGoal(_currentGoal);
