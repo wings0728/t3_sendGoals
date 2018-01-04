@@ -26,6 +26,7 @@
 
 //----------------------------------------------------------------------------------------------------------chengyuen3/1
 #define roundTrip 1
+#define durationSlp 2.0
 //----------------------------------------------------------------------------------------------------------
 
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
@@ -236,6 +237,17 @@ void GoalsNode::process()
 			//arriveGoal = true;
 			ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);	
 		}
+
+//-------------------------------------------------------------------------------------------------------------chengyuen4/1
+		/*
+		else if (ac.getState() == actionlib::SimpleClientGoalState::"please fill in here") {
+			ros::Duration(durationSlp).sleep(); 
+			ac.sendGoal(_currentGoal);
+		}
+	
+		*/
+//-------------------------------------------------------------------------------------------------------------
+
 		// else
 		// {
 		// 	arriveGoal = false;
