@@ -127,7 +127,7 @@ GoalsNode::GoalsNode() :
 	//set sub
 	// _currentPoseSub = _nh.subscribe("amcl_pose", 2, &GoalsNode::currentPoseReceived, this);
 //----------------------------------------------------------------------------------------------------------chengyuen3/1
-	_currentPoseOdomSub = _nh.subscribe("odometry_filtered_map", 2, &GoalsNode::currentPoseReceivedOdom, this);
+	//_currentPoseOdomSub = _nh.subscribe("odometry_filtered_map", 2, &GoalsNode::currentPoseReceivedOdom, this);
 	_commandSub = _nh.subscribe("command", 2, &GoalsNode::commandAction, this);
 //----------------------------------------------------------------------------------------------------------
 }
@@ -182,27 +182,27 @@ void GoalsNode::process()
 		// if(arriveGoal)
 		// {
 //----------------------------------------------------------------------------------------------------------chengyuen3/1
-		switch (roundTrip) {
-			case 1:
-				if(_countOfGoals <= _currentIdxOfGoal)
-				{
-					_currentIdxOfGoal = 0;
-					_idFlag = 1;				// 1 means ++, 0 means --
-				}
-				break;
-			case 0:
-				if(_countOfGoals <= _currentIdxOfGoal)
-				{
-					_currentIdxOfGoal = _countOfGoals - 2;
-					_idFlag = 0;
-				}
-				else if((_currentIdxOfGoal < 0))
-				{
-					_currentIdxOfGoal = 1;
-					_idFlag = 1;
-				}
-				break;
-		}
+		// switch (roundTrip) {
+		// 	case 1:
+		// 		if(_countOfGoals <= _currentIdxOfGoal)
+		// 		{
+		// 			_currentIdxOfGoal = 0;
+		// 			_idFlag = 1;				// 1 means ++, 0 means --
+		// 		}
+		// 		break;
+		// 	case 0:
+		// 		if(_countOfGoals <= _currentIdxOfGoal)
+		// 		{
+		// 			_currentIdxOfGoal = _countOfGoals - 2;
+		// 			_idFlag = 0;
+		// 		}
+		// 		else if((_currentIdxOfGoal < 0))
+		// 		{
+		// 			_currentIdxOfGoal = 1;
+		// 			_idFlag = 1;
+		// 		}
+		// 		break;
+		// }
 //----------------------------------------------------------------------------------------------------------
 
 			if(setGoal(_posesOfGoals[_currentIdxOfGoal]))
@@ -230,12 +230,16 @@ void GoalsNode::process()
 
 
 		//ac.waitForResult();
-
-		if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+		actionlib::SimpleClientGoalState state = ac.sendGoalAndWait();
+		if(state.StateEnum == actionlib::SimpleClientGoalState::SUCCEEDED)
 		{
-			//idx++;
+			
 			//arriveGoal = true;
-			ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);	
+			ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);
+			_currentIdxOfGoal++;	
+		}else
+		{
+			ROS_WARN(" %d position error [ %s ]", _currentIdxOfGoal, state.toString());
 		}
 
 //-------------------------------------------------------------------------------------------------------------chengyuen4/1
