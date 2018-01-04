@@ -204,10 +204,11 @@ void GoalsNode::process()
 		// 		break;
 		// }
 //----------------------------------------------------------------------------------------------------------
-
+			
 			if(setGoal(_posesOfGoals[_currentIdxOfGoal]))
 			{
-				 ac.sendGoal(_currentGoal);
+				 // ac.sendGoal(_currentGoal);
+				ac.sendGoalAndWait(_currentGoal);
 			}
 			
 			// std::pair<double, std::pair<double, double> > poseOfGoal_(_posesOfGoals[idx]);
@@ -230,8 +231,8 @@ void GoalsNode::process()
 
 
 		//ac.waitForResult();
-		actionlib::SimpleClientGoalState state = ac.sendGoalAndWait();
-		if(state.StateEnum == actionlib::SimpleClientGoalState::SUCCEEDED)
+		
+		if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
 		{
 			
 			//arriveGoal = true;
@@ -239,7 +240,7 @@ void GoalsNode::process()
 			_currentIdxOfGoal++;	
 		}else
 		{
-			ROS_WARN(" %d position error [ %s ]", _currentIdxOfGoal, state.toString());
+			ROS_WARN(" %d position error [ %s ]", _currentIdxOfGoal, ac.getState().toString().c_str());
 		}
 
 //-------------------------------------------------------------------------------------------------------------chengyuen4/1
@@ -265,11 +266,11 @@ void GoalsNode::process()
 
 bool GoalsNode::setGoal(std::pair<double, std::pair<double, double> >& goal)
 {
-	if(equalGoal(goal, _currentGoal))
-	{
-		// ROS_INFO("flase goal");
-		return false;
-	}
+	// if(equalGoal(goal, _currentGoal))
+	// {
+	// 	// ROS_INFO("flase goal");
+	// 	return false;
+	// }
 	std::pair<double, std::pair<double, double> > poseOfGoal_(goal);
 	std::pair<double, double> locationOfGoal_(goal.second);
 	double z = goal.first;
