@@ -60,6 +60,7 @@ private:
 	ros::Subscriber _currentPoseOdomSub;
 	ros::Subscriber _commandSub;
 	int _idFlag;
+	int _pause;
 //----------------------------------------------------------------------------------------------------------
 	double _distanceBetweenGoal;
 	//MoveBaseClient _action;
@@ -113,6 +114,7 @@ GoalsNode::GoalsNode() :
 //----------------------------------------------------------------------------------------------------------chengyuen3/1
 	ac("move_base", true),
 	_idFlag(1),
+	_pause(false),
 //----------------------------------------------------------------------------------------------------------
 	_arriveGoal(true),
 	_distanceBetweenGoal(100.f),
@@ -224,8 +226,10 @@ void GoalsNode::process()
 			// {
 			// 	 ac.sendGoal(_currentGoal);
 			// }
-			setGoal(_posesOfGoals[_currentIdxOfGoal]);
-			ac.sendGoalAndWait(_currentGoal);
+			if (!_pause) {
+				setGoal(_posesOfGoals[_currentIdxOfGoal]);
+				ac.sendGoalAndWait(_currentGoal);
+			}
 //>>>>>>> master
 			// std::pair<double, std::pair<double, double> > poseOfGoal_(_posesOfGoals[idx]);
 			// std::pair<double, double> locationOfGoal_(poseOfGoal_.second);
@@ -314,13 +318,14 @@ void GoalsNode::clearGoals()
 
 void GoalsNode::stopAction()
 {
-
+	ac.cancelGoal();
+	_pause = true;
 }
 
 //----------------------------------------------------------------------------------------------------------chengyuen3/1
 void GoalsNode::resumeAction()
 {
-
+	_pause = false;
 }
 
 void GoalsNode::currentPoseReceivedOdom(const nav_msgs::OdometryConstPtr& msg)
