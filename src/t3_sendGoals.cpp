@@ -56,6 +56,7 @@ private:
 	move_base_msgs::MoveBaseGoal _currentGoal;
 	move_base_msgs::MoveBaseGoal _lastGoal;
 	// ros::Subscriber _currentPoseSub;
+	bool _isCanceled;
 //----------------------------------------------------------------------------------------------------------chengyuen3/1
 	ros::Subscriber _currentPoseOdomSub;
 	ros::Subscriber _commandSub;
@@ -116,7 +117,8 @@ GoalsNode::GoalsNode() :
 //----------------------------------------------------------------------------------------------------------
 	_arriveGoal(true),
 	_distanceBetweenGoal(100.f),
-	_currentIdxOfGoal(0)
+	_currentIdxOfGoal(0),
+	_isCanceled(false)
 {	
 	//get param
 	_privateNh.param("/goals/countOfGoals", _countOfGoals, 0);
@@ -179,101 +181,29 @@ void GoalsNode::process()
 
 	while(ros::ok())
 	{
-		// if(arriveGoal)
-		// {
-//----------------------------------------------------------------------------------------------------------chengyuen3/1
-		// switch (roundTrip) {
-		// 	case 1:
-		// 		if(_countOfGoals <= _currentIdxOfGoal)
-		// 		{
-		// 			_currentIdxOfGoal = 0;
-		// 			_idFlag = 1;				// 1 means ++, 0 means --
-		// 		}
-		// 		break;
-		// 	case 0:
-		// 		if(_countOfGoals <= _currentIdxOfGoal)
-		// 		{
-		// 			_currentIdxOfGoal = _countOfGoals - 2;
-		// 			_idFlag = 0;
-		// 		}
-		// 		else if((_currentIdxOfGoal < 0))
-		// 		{
-		// 			_currentIdxOfGoal = 1;
-		// 			_idFlag = 1;
-		// 		}
-		// 		break;
-		// }
-//----------------------------------------------------------------------------------------------------------
-			
-//<<<<<<< master
+		if(!_isCanceled)
+		{
 			if(_countOfGoals <= _currentIdxOfGoal)
-				{
-					_currentIdxOfGoal = 0;
-					_idFlag = 1;				// 1 means ++, 0 means --
-				}
+			{
+				_currentIdxOfGoal = 0;
+				_idFlag = 1;				// 1 means ++, 0 means --
+			}
 
-
-//			if(setGoal(_posesOfGoals[_currentIdxOfGoal]))
-//			{
-				 // ac.sendGoal(_currentGoal);
-//				ac.sendGoalAndWait(_currentGoal);
-//			}
-			
-//=======
-			// if(setGoal(_posesOfGoals[_currentIdxOfGoal]))
-			// {
-			// 	 ac.sendGoal(_currentGoal);
-			// }
 			setGoal(_posesOfGoals[_currentIdxOfGoal]);
 			ac.sendGoalAndWait(_currentGoal);
-//>>>>>>> master
-			// std::pair<double, std::pair<double, double> > poseOfGoal_(_posesOfGoals[idx]);
-			// std::pair<double, double> locationOfGoal_(poseOfGoal_.second);
-			// double z = poseOfGoal_.first;
-			// double x = locationOfGoal_.first;
-			// double y = locationOfGoal_.second;
 
-			// _currentGoal.target_pose.header.stamp = ros::Time::now();
-			// _currentGoal.target_pose.header.frame_id = "map";
-			// _currentGoal.target_pose.pose.position.x = x;
-			// _currentGoal.target_pose.pose.position.y = y;
-			// _currentGoal.target_pose.pose.orientation.z = z;
-			// _currentGoal.target_pose.pose.orientation.w = 1.0;
-
-			// ROS_INFO("Sending goal %d", idx);
-
-			// ac.sendGoal(_currentGoal);
-		// }
-
-
-		//ac.waitForResult();
-		
-		if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-		{
+			if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+			{
 			
-			//arriveGoal = true;
-			ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);
-			_currentIdxOfGoal++;	
-		}else
-		{
-			ROS_WARN(" %d position error [ %s ]", _currentIdxOfGoal, ac.getState().toString().c_str());
+				//arriveGoal = true;
+				ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);
+				_currentIdxOfGoal++;	
+			}else
+			{
+				ROS_WARN(" %d position error [ %s ]", _currentIdxOfGoal, ac.getState().toString().c_str());
+			}
 		}
 
-//-------------------------------------------------------------------------------------------------------------chengyuen4/1
-		/*
-		else if (ac.getState() == actionlib::SimpleClientGoalState::"please fill in here") {
-			ros::Duration(durationSlp).sleep(); 
-			ac.sendGoal(_currentGoal);
-		}
-	
-		*/
-//-------------------------------------------------------------------------------------------------------------
-
-		// else
-		// {
-		// 	arriveGoal = false;
-		// 	//ROS_INFO("The base failed for some reason");
-		// }
 		ros::spinOnce();
 		loop_rate.sleep();		
 	}
@@ -314,13 +244,14 @@ void GoalsNode::clearGoals()
 
 void GoalsNode::stopAction()
 {
-
+	_currentIdxOfGoal = 0;
+	cancelGoal();
 }
 
 //----------------------------------------------------------------------------------------------------------chengyuen3/1
 void GoalsNode::resumeAction()
 {
-
+	_isCanceled = false;
 }
 
 void GoalsNode::currentPoseReceivedOdom(const nav_msgs::OdometryConstPtr& msg)
@@ -373,6 +304,7 @@ void GoalsNode::cancelGoal()
 //----------------------------------------------------------------------------------------------------------
 // void GoalsNode::cancelGoal(MoveBaseClient &ac)
 {
+	_isCanceled = true;
 	ac.cancelGoal();
 }
 
