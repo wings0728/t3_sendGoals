@@ -61,6 +61,7 @@ private:
 	move_base_msgs::MoveBaseGoal _currentGoal;
 	move_base_msgs::MoveBaseGoal _lastGoal;
 	// ros::Subscriber _currentPoseSub;
+	bool _isCanceled;
 //----------------------------------------------------------------------------------------------------------chengyuen3/1
 	ros::Subscriber _currentPoseOdomSub;
 	ros::Subscriber _commandSub;
@@ -209,6 +210,7 @@ void GoalsNode::process()
       }
     }
 
+
 		ros::spinOnce();
 		loop_rate.sleep();		
 	}
@@ -251,13 +253,14 @@ void GoalsNode::clearGoals()
 
 void GoalsNode::stopAction()
 {
-
+	_currentIdxOfGoal = 0;
+	cancelGoal();
 }
 
 //----------------------------------------------------------------------------------------------------------chengyuen3/1
 void GoalsNode::resumeAction()
 {
-
+	_isCanceled = false;
 }
 
 void GoalsNode::currentPoseReceivedOdom(const nav_msgs::OdometryConstPtr& msg)
@@ -342,6 +345,7 @@ void GoalsNode::cancelGoal()
 //----------------------------------------------------------------------------------------------------------
 // void GoalsNode::cancelGoal(MoveBaseClient &ac)
 {
+	_isCanceled = true;
 	ac.cancelGoal();
 }
 
