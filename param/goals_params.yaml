@@ -1,13 +1,9 @@
-countOfGoals: 3
+countOfGoals: 2
 
-goal0_x: 3.279
-goal0_y: -1.161
-goal0_z: -1.498
+goal0_x: -96
+goal0_y: -169
+goal0_z: 2.0
 
-goal1_x: 0.724
-goal1_y: -3.924
-goal1_z: -0.997
-
-goal2_x: 3.925
-goal2_y: -5.588
-goal2_z: 1.770
+goal1_x: -103
+goal1_y: -169
+goal1_z: 0.0

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(t3_robot)
+project(t3_goal)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   tf
+  t3_description
 )
 
 find_package(Boost REQUIRED)
