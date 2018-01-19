@@ -154,8 +154,8 @@ include_directories(${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 #   ${catkin_LIBRARIES}
 # )
 
-add_executable(t3_sendGoals src/t3_sendGoals.cpp)
- target_link_libraries(t3_sendGoals
+add_executable(t3_goal src/t3_sendGoals.cpp)
+ target_link_libraries(t3_goal
    ${catkin_LIBRARIES}
    ${Boost_LIBRARIES}
  )

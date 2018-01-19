@@ -68,7 +68,7 @@ private:
 	int _idFlag;
 //----------------------------------------------------------------------------------------------------------
   ros::Subscriber _goalSub;
-  ros::Subscriber _globalPlanSub;
+//  ros::Subscriber _globalPlanSub;
 	double _distanceBetweenGoal;
 	//MoveBaseClient _action;
 	void updateGoalsFromServer();
@@ -91,7 +91,7 @@ private:
 //----------------------------------------------------------------------------------------------------------
   //callBack
   void getGoalCallback(const t3_description::goal& msg);
-  void getGlobalPlanCallback(const nav_msgs::Path& pathMsg);
+//  void getGlobalPlanCallback(const nav_msgs::Path& pathMsg);
 };
 
 //boost::shared_ptr<GoalsNode> goals_node_ptr;
@@ -143,7 +143,7 @@ GoalsNode::GoalsNode() :
 	_commandSub = _nh.subscribe("command", 2, &GoalsNode::commandAction, this);
 //----------------------------------------------------------------------------------------------------------
   _goalSub = _nh.subscribe("robotGoal",100, &GoalsNode::getGoalCallback, this);
-  _globalPlanSub = _nh.subscribe("TrajectoryPlannerROS/global_plan", 1000, &GoalsNode::getGlobalPlanCallback, this);
+//  _globalPlanSub = _nh.subscribe("TrajectoryPlannerROS/global_plan", 1000, &GoalsNode::getGlobalPlanCallback, this);
 
 }
 
@@ -191,23 +191,42 @@ void GoalsNode::process()
 	{
     if(!_posesOfGoals.empty())
     {
-      if(_countOfGoals <= _currentIdxOfGoal)
+      if(_isMapGoal)
       {
-        _currentIdxOfGoal = 0;
-        _idFlag = 1;				// 1 means ++, 0 means --
-      }
-
-      setGoal(_posesOfGoals[_currentIdxOfGoal]);
-      ac.sendGoalAndWait(_currentGoal);
-      if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-      {
-        //arriveGoal = true;
-        ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);
-        _currentIdxOfGoal++;
+        setGoal(_posesOfGoals[_currentIdxOfGoal]);
+        ac.sendGoalAndWait(_currentGoal);
+        if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+        {
+          //arriveGoal = true;
+          _isMapGoal = false;
+          ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);
+          clearGoals();
+        }else
+        {
+          ROS_WARN(" %d position error [ %s ]", _currentIdxOfGoal, ac.getState().toString().c_str());
+        }
       }else
       {
-        ROS_WARN(" %d position error [ %s ]", _currentIdxOfGoal, ac.getState().toString().c_str());
+        if(_countOfGoals <= _currentIdxOfGoal)
+        {
+          _currentIdxOfGoal = 0;
+          _idFlag = 1;				// 1 means ++, 0 means --
+        }
+
+        setGoal(_posesOfGoals[_currentIdxOfGoal]);
+        ac.sendGoalAndWait(_currentGoal);
+        if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+        {
+          //arriveGoal = true;
+          ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);
+
+          _currentIdxOfGoal++;
+        }else
+        {
+          ROS_WARN(" %d position error [ %s ]", _currentIdxOfGoal, ac.getState().toString().c_str());
+        }
       }
+
     }
 
 
@@ -314,30 +333,14 @@ void GoalsNode::handleCurrentPoseMessage(const nav_msgs::Odometry& msg)
 ///
 void GoalsNode::getGoalCallback(const t3_description::goal& msg)
 {
+  _isMapGoal = true;
   clearGoals();//clear goal list
   _posesOfGoals.push_back(std::make_pair(msg.z, std::make_pair(msg.x, msg.y)));
-  _countOfGoals = 1;
+  _countOfGoals++;
 //  setGoal(clickGoal_);
 }
 
-///
-/// \brief getGlobalPlanCallback
-/// \param pathMsg
-///
-void GoalsNode::getGlobalPlanCallback(const nav_msgs::Path& pathMsg)
-{
-  if(pathMsg.header.frame_id == "")
-    {
-      // This should be removed at some point
-      ROS_WARN("Received path with empty frame_id.  You should always supply a frame_id.");
-    }
-  int pathSize = pathMsg.poses.size();
-  std::vector<geometry_msgs::PoseStamped> path(pathSize);
-  for(unsigned int i=0; i < pathSize; i++){
-    path[i] = pathMsg.poses[i];
-    ROS_INFO("%f %f",path[i].pose.position.x, path[i].pose.position.y);
-  }
-}
+
 
 
 //----------------------------------------------------------------------------------------------------------chengyuen3/1
