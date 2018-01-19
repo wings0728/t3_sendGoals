@@ -15,8 +15,11 @@
 
 #include "std_msgs/String.h"
 #include "nav_msgs/Odometry.h"
+#include "nav_msgs/Path.h"
 
 #include <math.h>
+
+#include "t3_description/goal.h"
 //boost
 // #include <boost/bind.hpp>
 // #include <boost/thread/mutex.hpp>
@@ -43,12 +46,14 @@ private:
 	MoveBaseClient ac;
 //----------------------------------------------------------------------------------------------------------
 	//frame_id
+	bool _isMapGoal;
 	std::string _frameId;
 	int _countOfGoals;
 	int _currentIdxOfGoal;
 	bool _arriveGoal;
 	//all poses of goals
-	std::vector<std::pair<double, std::pair<double, double> > > _posesOfGoals;
+	std::vector<std::pair<double, std::pair<double, double> > > _posesOfGoals;//the goals from param-file
+	std::pair<double, std::pair<double, double> > _poseOfGoal;//the goal from qt-map clicked
 	//std::vector<double> _posesOfGoals;
 	//tf::Pose _posesOfGoals;
 	ros::NodeHandle _nh;
@@ -62,6 +67,8 @@ private:
 	ros::Subscriber _commandSub;
 	int _idFlag;
 //----------------------------------------------------------------------------------------------------------
+	ros::Subscriber _goalSub;
+	// ros::Subscriber _globalPlanSub;
 	double _distanceBetweenGoal;
 	//MoveBaseClient _action;
 	void updateGoalsFromServer();
@@ -82,6 +89,9 @@ private:
 	void currentPoseReceivedOdom(const nav_msgs::OdometryConstPtr& msg);
 	void handleCurrentPoseMessage(const nav_msgs::Odometry& msg);
 //----------------------------------------------------------------------------------------------------------
+	//callback
+	void getGoalCallback(const t3::description::goal& msg);
+	// void getGlobalPlanCallback(const nav_msgs::Path& pathMsg);
 };
 
 //boost::shared_ptr<GoalsNode> goals_node_ptr;
@@ -118,7 +128,7 @@ GoalsNode::GoalsNode() :
 	_arriveGoal(true),
 	_distanceBetweenGoal(100.f),
 	_currentIdxOfGoal(0),
-	_isCanceled(false)
+	_isMapGoal(false)
 {	
 	//get param
 	_privateNh.param("/goals/countOfGoals", _countOfGoals, 0);
@@ -132,6 +142,9 @@ GoalsNode::GoalsNode() :
 	//_currentPoseOdomSub = _nh.subscribe("odometry_filtered_map", 2, &GoalsNode::currentPoseReceivedOdom, this);
 	_commandSub = _nh.subscribe("command", 2, &GoalsNode::commandAction, this);
 //----------------------------------------------------------------------------------------------------------
+	_goalSub = _nh.subscribe("robotGoal",100, &GoalsNode::getGoalCallback, this);
+	// _globalPlanSub = _nh.subscribe("TrajectoryPlannerROS/global_plan", 1000, &GoalsNode::getGlobalPlanCallback, this);
+
 }
 
 // GoalsNode::~GoalsNode()
@@ -158,9 +171,6 @@ void GoalsNode::updateGoalsFromServer()
 		if(!std::isnan(tempX_) && !std::isnan(tempY_) && !std::isnan(tempZ_))
 		{
 			_posesOfGoals.push_back(std::make_pair(tempZ_, std::make_pair(tempX_, tempY_)));
-			// std::stringstream ss;
-			// ss << goalNameX_ << ":" << tempX_ << " " << goalNameY_ << ":" << tempY_ << " " << goalNameZ_ << ":" << tempZ_;
-			// ROS_INFO("%s", ss.str().c_str());
 		}
 
 		else
@@ -171,8 +181,6 @@ void GoalsNode::updateGoalsFromServer()
 
 void GoalsNode::process()
 {
-	// ac("move_base", true);
-	// MoveBaseClient ac("move_base", true);
 	while(!ac.waitForServer(ros::Duration(5.0)))
 	{
 		ROS_WARN("Waiting for the move_base action server");
@@ -181,28 +189,46 @@ void GoalsNode::process()
 
 	while(ros::ok())
 	{
-		if(!_isCanceled)
-		{
-			if(_countOfGoals <= _currentIdxOfGoal)
-			{
-				_currentIdxOfGoal = 0;
-				_idFlag = 1;				// 1 means ++, 0 means --
-			}
+		if(!_posesOfGoals.empty())
+    	{
+      		if(_isMapGoal)
+      		{
+        		setGoal(_posesOfGoals[_currentIdxOfGoal]);
+        		ac.sendGoalAndWait(_currentGoal);
+        		if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+        		{
+          			//arriveGoal = true;
+          			_isMapGoal = false;
+          			ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);
+          			clearGoals();
+       			}else
+        		{
+          			ROS_WARN(" %d position error [ %s ]", _currentIdxOfGoal, ac.getState().toString().c_str());
+        		}
+      		}else
+      		{
+        		if(_countOfGoals <= _currentIdxOfGoal)
+        		{
+		          _currentIdxOfGoal = 0;
+		          _idFlag = 1;				// 1 means ++, 0 means --
+        		}
 
-			setGoal(_posesOfGoals[_currentIdxOfGoal]);
-			ac.sendGoalAndWait(_currentGoal);
+		        setGoal(_posesOfGoals[_currentIdxOfGoal]);
+		        ac.sendGoalAndWait(_currentGoal);
+		        if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+        		{
+          			//arriveGoal = true;
+          			ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);
 
-			if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-			{
-			
-				//arriveGoal = true;
-				ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);
-				_currentIdxOfGoal++;	
-			}else
-			{
-				ROS_WARN(" %d position error [ %s ]", _currentIdxOfGoal, ac.getState().toString().c_str());
-			}
-		}
+          			_currentIdxOfGoal++;
+        		}else
+        		{
+          			ROS_WARN(" %d position error [ %s ]", _currentIdxOfGoal, ac.getState().toString().c_str());
+        		}
+      		}
+
+    	}
+
 
 		ros::spinOnce();
 		loop_rate.sleep();		
@@ -238,8 +264,10 @@ bool GoalsNode::setGoal(std::pair<double, std::pair<double, double> >& goal)
 
 void GoalsNode::clearGoals()
 {
-	stopAction();
 	_posesOfGoals.clear();
+	_currentIdxOfGoal = 0;
+	_countOfGoals = 0;
+	cancelGoal();
 }
 
 void GoalsNode::stopAction()
@@ -258,6 +286,8 @@ void GoalsNode::currentPoseReceivedOdom(const nav_msgs::OdometryConstPtr& msg)
 {
 	handleCurrentPoseMessage(*msg);
 }
+
+/********************callback********************/
 //----------------------------------------------------------------------------------------------------------
 
 /*
@@ -297,6 +327,20 @@ void GoalsNode::handleCurrentPoseMessage(const nav_msgs::Odometry& msg)
 	}
 //----------------------------------------------------------------------------------------------------------
 }
+///
+/// \brief getGoalCallback
+/// \param msg
+///
+void GoalsNode::getGoalCallback(const t3_description::goal& msg)
+{
+	_isMapGoal = true;
+  	clearGoals();//clear goal list
+  	_posesOfGoals.push_back(std::make_pair(msg.z, std::make_pair(msg.x, msg.y)));
+  	_countOfGoals++;
+//  setGoal(clickGoal_);
+}
+
+
 
 
 //----------------------------------------------------------------------------------------------------------chengyuen3/1
