@@ -147,10 +147,14 @@ GoalsNode::GoalsNode() :
 
 }
 
-// GoalsNode::~GoalsNode()
-// {
-
-// }
+GoalsNode::~GoalsNode()
+{
+  if(ros::isStarted()) {
+    ros::shutdown(); // explicitly needed since we use ros::start();
+    ros::waitForShutdown();
+  }
+  wait();
+}
 	
 
 void GoalsNode::updateGoalsFromServer()
