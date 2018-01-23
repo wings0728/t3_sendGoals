@@ -109,7 +109,7 @@ int main(int argc, char** argv)
 	// Override default sigint handler
 	signal(SIGINT, sigintHandler);
 	GoalsNode *gn = new GoalsNode();
-	gn->process();
+  gn->process();
 	return 0;
 }
 
@@ -185,7 +185,7 @@ void GoalsNode::updateGoalsFromServer()
 
 void GoalsNode::process()
 {
-	while(!ac.waitForServer(ros::Duration(5.0)))
+  while(!ac.waitForServer(ros::Duration(5.0))&&ros::ok())
 	{
 		ROS_WARN("Waiting for the move_base action server");
 	}
