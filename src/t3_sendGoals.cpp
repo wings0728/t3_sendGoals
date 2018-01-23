@@ -185,7 +185,7 @@ void GoalsNode::updateGoalsFromServer()
 
 void GoalsNode::process()
 {
-  while(!ac.waitForServer(ros::Duration(5.0))&&ros::ok())
+  while((!ac.waitForServer(ros::Duration(5.0))))
 	{
 		ROS_WARN("Waiting for the move_base action server");
 	}
