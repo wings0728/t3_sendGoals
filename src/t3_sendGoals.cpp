@@ -63,7 +63,7 @@ private:
 	// ros::Subscriber _currentPoseSub;
 	bool _isCanceled;
 //----------------------------------------------------------------------------------------------------------chengyuen3/1
-	ros::Subscriber _currentPoseOdomSub;
+	// ros::Subscriber _currentPoseOdomSub;
 	ros::Subscriber _commandSub;
 	int _idFlag;
 //----------------------------------------------------------------------------------------------------------
@@ -128,7 +128,8 @@ GoalsNode::GoalsNode() :
 	_arriveGoal(true),
 	_distanceBetweenGoal(100.f),
   _currentIdxOfGoal(0),
-  _isMapGoal(false)
+  _isMapGoal(false),
+  _isCanceled(false)
 {	
 	//get param
 	_privateNh.param("/goals/countOfGoals", _countOfGoals, 0);
@@ -140,7 +141,7 @@ GoalsNode::GoalsNode() :
 	// _currentPoseSub = _nh.subscribe("amcl_pose", 2, &GoalsNode::currentPoseReceived, this);
 //----------------------------------------------------------------------------------------------------------chengyuen3/1
 	//_currentPoseOdomSub = _nh.subscribe("odometry_filtered_map", 2, &GoalsNode::currentPoseReceivedOdom, this);
-	_commandSub = _nh.subscribe("command", 2, &GoalsNode::commandAction, this);
+	_commandSub = _nh.subscribe("ping_command", 10, &GoalsNode::commandAction, this);
 //----------------------------------------------------------------------------------------------------------
   _goalSub = _nh.subscribe("robotGoal",100, &GoalsNode::getGoalCallback, this);
 //  _globalPlanSub = _nh.subscribe("TrajectoryPlannerROS/global_plan", 1000, &GoalsNode::getGlobalPlanCallback, this);
@@ -185,7 +186,7 @@ void GoalsNode::updateGoalsFromServer()
 
 void GoalsNode::process()
 {
-  while((!ac.waitForServer(ros::Duration(5.0))))
+  while((!ac.waitForServer(ros::Duration(5.0))) || ros::ok())
 	{
 		ROS_WARN("Waiting for the move_base action server");
 	}
@@ -193,7 +194,7 @@ void GoalsNode::process()
 
 	while(ros::ok())
 	{
-    if(!_posesOfGoals.empty())
+    if((!_posesOfGoals.empty()) || (!_isCanceled))    //added second condition --------- chengyuen24/1
     {
       if(_isMapGoal)
       {
@@ -272,7 +273,7 @@ void GoalsNode::clearGoals()
 	_posesOfGoals.clear();
   _currentIdxOfGoal = 0;
   _countOfGoals = 0;
-  cancelGoal();
+  ac.cancelGoal();
 }
 
 void GoalsNode::stopAction()
@@ -353,8 +354,10 @@ void GoalsNode::cancelGoal()
 //----------------------------------------------------------------------------------------------------------
 // void GoalsNode::cancelGoal(MoveBaseClient &ac)
 {
-	_isCanceled = true;
-	ac.cancelGoal();
+	if (!_isCanceled) {
+		_isCanceled = true;
+		ac.cancelGoal();
+	}
 }
 
 double GoalsNode::getYaw(tf::Pose& t)
@@ -409,17 +412,9 @@ bool GoalsNode::setGoalArrive()
 void GoalsNode::commandAction(const std_msgs::String::ConstPtr& cmd)
 {
 	ROS_INFO("cmd msg receive: %s", cmd->data.c_str());
-	if (cmd->data == "cancel") {
-		ROS_INFO("cancel goal");
-		cancelGoal();
-	}
-	else if (cmd->data == "pause") {
+	if (cmd->data == "pause") {
 		ROS_INFO("pause action");
-		stopAction();
-	}
-	else if (cmd->data == "clear") {
-		ROS_INFO("clear all goals");
-		clearGoals();
+		cancelGoal();
 	}
 	else if (cmd->data == "resume") {
 		ROS_INFO("resume action");

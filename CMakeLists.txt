@@ -120,7 +120,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+ include
   ${catkin_INCLUDE_DIRS}
 )
 include_directories(${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
@@ -159,6 +159,20 @@ add_executable(t3_goal src/t3_sendGoals.cpp)
    ${catkin_LIBRARIES}
    ${Boost_LIBRARIES}
  )
+
+add_executable(check_connection src/check_connection.cpp)
+ target_link_libraries(check_connection
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+ )
+ add_dependencies(check_connection ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(test_node src/test.cpp)
+ target_link_libraries(test_node
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+ )
+ add_dependencies(test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 
 #############
