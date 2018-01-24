@@ -249,16 +249,17 @@ bool GoalsNode::setGoal(std::pair<double, std::pair<double, double> >& goal)
 	// }
 	std::pair<double, std::pair<double, double> > poseOfGoal_(goal);
 	std::pair<double, double> locationOfGoal_(goal.second);
-	double z = goal.first;
+//	double z = goal.first;
 	double x = locationOfGoal_.first;
 	double y = locationOfGoal_.second;
-
+  double z = sin(goal.first/2);
+  double w = cos(goal.first/2);
 	_currentGoal.target_pose.header.stamp = ros::Time::now();
 	_currentGoal.target_pose.header.frame_id = "map";
 	_currentGoal.target_pose.pose.position.x = x;
 	_currentGoal.target_pose.pose.position.y = y;
 	_currentGoal.target_pose.pose.orientation.z = z;
-	_currentGoal.target_pose.pose.orientation.w = 1.0;
+  _currentGoal.target_pose.pose.orientation.w = w;
 
 	//ROS_INFO("Sending goal %d", idx);
 
