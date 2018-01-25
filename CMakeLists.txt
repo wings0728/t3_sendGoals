@@ -160,19 +160,19 @@ add_executable(t3_goal src/t3_sendGoals.cpp)
    ${Boost_LIBRARIES}
  )
 
-add_executable(check_connection src/check_connection.cpp)
- target_link_libraries(check_connection
-   ${catkin_LIBRARIES}
-   ${Boost_LIBRARIES}
- )
- add_dependencies(check_connection ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#add_executable(check_connection src/check_connection.cpp)
+# target_link_libraries(check_connection
+#   ${catkin_LIBRARIES}
+#   ${Boost_LIBRARIES}
+# )
+# add_dependencies(check_connection ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_executable(test_node src/test.cpp)
- target_link_libraries(test_node
-   ${catkin_LIBRARIES}
-   ${Boost_LIBRARIES}
- )
- add_dependencies(test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#add_executable(test_node src/test.cpp)
+# target_link_libraries(test_node
+#   ${catkin_LIBRARIES}
+#   ${Boost_LIBRARIES}
+# )
+# add_dependencies(test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 
 #############
