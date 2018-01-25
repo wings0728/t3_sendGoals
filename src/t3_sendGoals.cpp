@@ -20,6 +20,7 @@
 #include <math.h>
 
 #include "t3_description/goal.h"
+#include <std_msgs/Bool.h>
 //boost
 // #include <boost/bind.hpp>
 // #include <boost/thread/mutex.hpp>
@@ -42,6 +43,10 @@ public:
 	void process();
 
 private:
+  enum OprationMode {
+           Auto,
+           Manual
+   };
 //----------------------------------------------------------------------------------------------------------chengyuen3/1
 	MoveBaseClient ac;
 //----------------------------------------------------------------------------------------------------------
@@ -51,6 +56,7 @@ private:
 	int _countOfGoals;
 	int _currentIdxOfGoal;
 	bool _arriveGoal;
+  OprationMode _oprationMode;
 	//all poses of goals
   std::vector<std::pair<double, std::pair<double, double> > > _posesOfGoals;//the goals from param-file
   std::pair<double, std::pair<double, double> > _poseOfGoal;//the goal from qt-map clicked
@@ -68,6 +74,7 @@ private:
 	int _idFlag;
 //----------------------------------------------------------------------------------------------------------
   ros::Subscriber _goalSub;
+  ros::Subscriber _oprationSub;
 //  ros::Subscriber _globalPlanSub;
 	double _distanceBetweenGoal;
 	//MoveBaseClient _action;
@@ -89,8 +96,10 @@ private:
 	void currentPoseReceivedOdom(const nav_msgs::OdometryConstPtr& msg);
 	void handleCurrentPoseMessage(const nav_msgs::Odometry& msg);
 //----------------------------------------------------------------------------------------------------------
+  void sendGoal();
   //callBack
   void getGoalCallback(const t3_description::goal& msg);
+  void getOprationCallback(const std_msgs::Bool& msg);
 //  void getGlobalPlanCallback(const nav_msgs::Path& pathMsg);
 };
 
@@ -144,6 +153,7 @@ GoalsNode::GoalsNode() :
 	_commandSub = _nh.subscribe("ping_command", 10, &GoalsNode::commandAction, this);
 //----------------------------------------------------------------------------------------------------------
   _goalSub = _nh.subscribe("robotGoal",100, &GoalsNode::getGoalCallback, this);
+  _oprationSub = _nh.subscribe("oprationMode", 10, &GoalsNode::getOprationCallback, this);
 //  _globalPlanSub = _nh.subscribe("TrajectoryPlannerROS/global_plan", 1000, &GoalsNode::getGlobalPlanCallback, this);
 
 }
@@ -184,32 +194,60 @@ void GoalsNode::updateGoalsFromServer()
 	}
 }
 
+void GoalsNode::sendGoal()
+{
+//  ROS_INFO("ac.getState: %s", ac.getState().toString().c_str());
+  if(setGoal(_posesOfGoals[_currentIdxOfGoal]) || (ac.getState() == actionlib::SimpleClientGoalState::ABORTED))
+  {
+    ac.sendGoal(_currentGoal);
+
+  }
+  if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+  {
+    //arriveGoal = true;
+
+    ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);
+    if(_isMapGoal)
+    {
+      _isMapGoal = false;
+      clearGoals();
+    }else
+    {
+      _currentIdxOfGoal++;
+    }
+
+  }
+
+}
+
 void GoalsNode::process()
 {
-  while((!ac.waitForServer(ros::Duration(5.0))) || ros::ok())
+  while((!ac.waitForServer(ros::Duration(5.0))))
 	{
 		ROS_WARN("Waiting for the move_base action server");
 	}
 	ros::Rate loop_rate(10);
-
+//  ROS_INFO("_posesOfGoals: %d", _posesOfGoals.empty());
 	while(ros::ok())
 	{
-    if((!_posesOfGoals.empty()) || (!_isCanceled))    //added second condition --------- chengyuen24/1
+
+//    ROS_INFO("send goal");
+    if((!_posesOfGoals.empty()))    //added second condition --------- chengyuen24/1
     {
+      if(_isCanceled)
+      {
+        continue;
+      }
       if(_isMapGoal)
       {
-        setGoal(_posesOfGoals[_currentIdxOfGoal]);
-        ac.sendGoalAndWait(_currentGoal);
-        if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-        {
-          //arriveGoal = true;
-          _isMapGoal = false;
-          ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);
-          clearGoals();
-        }else
-        {
-          ROS_WARN(" %d position error [ %s ]", _currentIdxOfGoal, ac.getState().toString().c_str());
-        }
+        sendGoal();
+//        if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+//        {
+//          //arriveGoal = true;
+//          _isMapGoal = false;
+//          ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);
+//          clearGoals();
+//        }
       }else
       {
         if(_countOfGoals <= _currentIdxOfGoal)
@@ -218,24 +256,21 @@ void GoalsNode::process()
           _idFlag = 1;				// 1 means ++, 0 means --
         }
 
-        setGoal(_posesOfGoals[_currentIdxOfGoal]);
-        ac.sendGoalAndWait(_currentGoal);
-        if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-        {
-          //arriveGoal = true;
-          ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);
+        sendGoal();
 
-          _currentIdxOfGoal++;
-        }else
-        {
-          ROS_WARN(" %d position error [ %s ]", _currentIdxOfGoal, ac.getState().toString().c_str());
-        }
+//        if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+//        {
+//          //arriveGoal = true;
+//          ROS_INFO("You have arrived to the goal %d position", _currentIdxOfGoal);
+
+//          _currentIdxOfGoal++;
+//        }
       }
 
     }
 
 
-		ros::spinOnce();
+    ros::spinOnce();
 		loop_rate.sleep();		
 	}
 
@@ -243,11 +278,11 @@ void GoalsNode::process()
 
 bool GoalsNode::setGoal(std::pair<double, std::pair<double, double> >& goal)
 {
-	// if(equalGoal(goal, _currentGoal))
-	// {
-	// 	// ROS_INFO("flase goal");
-	// 	return false;
-	// }
+   if(equalGoal(goal, _currentGoal))
+   {
+//     ROS_INFO("flase goal");
+    return false;
+   }
 	std::pair<double, std::pair<double, double> > poseOfGoal_(goal);
 	std::pair<double, double> locationOfGoal_(goal.second);
 //	double z = goal.first;
@@ -255,6 +290,8 @@ bool GoalsNode::setGoal(std::pair<double, std::pair<double, double> >& goal)
 	double y = locationOfGoal_.second;
   double z = sin(goal.first/2);
   double w = cos(goal.first/2);
+//  double angle = atan2(2*(w*z), 1-2*z*z);
+//  ROS_INFO("%f %f",goal.first,angle);
 	_currentGoal.target_pose.header.stamp = ros::Time::now();
 	_currentGoal.target_pose.header.frame_id = "map";
 	_currentGoal.target_pose.pose.position.x = x;
@@ -264,7 +301,7 @@ bool GoalsNode::setGoal(std::pair<double, std::pair<double, double> >& goal)
 
 	//ROS_INFO("Sending goal %d", idx);
 
-	// ROS_INFO("true goal");
+//   ROS_INFO("true goal");
 	return true;
 }		
 
@@ -296,15 +333,18 @@ void GoalsNode::currentPoseReceivedOdom(const nav_msgs::OdometryConstPtr& msg)
 /********************callback********************/
 //----------------------------------------------------------------------------------------------------------
 
-/*
-*note: callback of pose
-*par:  msg: msg of pose
-*/
-// void GoalsNode::currentPoseReceived(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
-// {
-// 	handleCurrentPoseMessage(*msg);
-// }
-
+///
+/// \brief GoalsNode::getOprationCallback
+/// \param auto = 0; manual = 1;
+///
+void GoalsNode::getOprationCallback(const std_msgs::Bool &msg)
+{
+  _oprationMode = (OprationMode)msg.data;
+  if(_oprationMode == Manual)
+  {
+    clearGoals();
+  }
+}
 //----------------------------------------------------------------------------------------------------------chengyuen3/1
 void GoalsNode::handleCurrentPoseMessage(const nav_msgs::Odometry& msg)
 //----------------------------------------------------------------------------------------------------------
@@ -356,7 +396,8 @@ void GoalsNode::cancelGoal()
 {
 	if (!_isCanceled) {
 		_isCanceled = true;
-		ac.cancelGoal();
+    _posesOfGoals.clear();
+    ac.cancelGoal();
 	}
 }
 
@@ -390,9 +431,12 @@ bool GoalsNode::equalGoal(std::pair<double, std::pair<double, double> >& goal0, 
 	 //       goal1.target_pose.pose.position.x,
 	 //       goal0.second.second,
 	 //       goal1.target_pose.pose.position.y);
+  double w = goal1.target_pose.pose.orientation.w;
+  double z = goal1.target_pose.pose.orientation.z;
+  int currentGoalYaw = (int)atan2(2*w*z, 1 - 2*z*z);
 	if((goal0.second.first == goal1.target_pose.pose.position.x) 
 		&& (goal0.second.second == goal1.target_pose.pose.position.y) 
-		&& (goal0.first == goal1.target_pose.pose.orientation.z))
+    && ((int)(goal0.first) == currentGoalYaw))
 	{
 		// ROS_INFO("equal true");
 		return true;
