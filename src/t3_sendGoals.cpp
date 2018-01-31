@@ -310,6 +310,7 @@ void GoalsNode::clearGoals()
 	_posesOfGoals.clear();
   _currentIdxOfGoal = 0;
   _countOfGoals = 0;
+  ROS_INFO("state: %s",ac.getState().toString().c_str());
   ac.cancelGoal();
 }
 
