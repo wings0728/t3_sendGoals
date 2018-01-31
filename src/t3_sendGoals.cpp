@@ -310,8 +310,12 @@ void GoalsNode::clearGoals()
 	_posesOfGoals.clear();
   _currentIdxOfGoal = 0;
   _countOfGoals = 0;
-  ROS_INFO("state: %s",ac.getState().toString().c_str());
-  ac.cancelGoal();
+  if(ac.getState() != actionlib::SimpleClientGoalState::LOST)
+  {
+    ac.cancelGoal();
+  }
+//  ROS_INFO("state: %s",ac.getState().toString().c_str());
+
 }
 
 void GoalsNode::stopAction()
@@ -398,7 +402,10 @@ void GoalsNode::cancelGoal()
 	if (!_isCanceled) {
 		_isCanceled = true;
     _posesOfGoals.clear();
-    ac.cancelGoal();
+    if(ac.getState() != actionlib::SimpleClientGoalState::LOST)
+    {
+      ac.cancelGoal();
+    }
 	}
 }
 
