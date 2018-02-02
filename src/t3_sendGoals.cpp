@@ -75,6 +75,7 @@ private:
 //----------------------------------------------------------------------------------------------------------
   ros::Subscriber _goalSub;
   ros::Subscriber _oprationSub;
+  ros::Publisher _actionState;
 //  ros::Subscriber _globalPlanSub;
 	double _distanceBetweenGoal;
 	//MoveBaseClient _action;
@@ -155,7 +156,8 @@ GoalsNode::GoalsNode() :
   _goalSub = _nh.subscribe("robotGoal",100, &GoalsNode::getGoalCallback, this);
   _oprationSub = _nh.subscribe("oprationMode", 10, &GoalsNode::getOprationCallback, this);
 //  _globalPlanSub = _nh.subscribe("TrajectoryPlannerROS/global_plan", 1000, &GoalsNode::getGlobalPlanCallback, this);
-
+  //set pub
+  _actionState = _nh.advertise<std_msgs::Bool>("actionStateIsAborted", 2);
 }
 
 GoalsNode::~GoalsNode()
@@ -197,8 +199,10 @@ void GoalsNode::updateGoalsFromServer()
 void GoalsNode::sendGoal()
 {
 //  ROS_INFO("ac.getState: %s", ac.getState().toString().c_str());
-  if(setGoal(_posesOfGoals[_currentIdxOfGoal]) || (ac.getState() == actionlib::SimpleClientGoalState::ABORTED))
+  bool eq = setGoal(_posesOfGoals[_currentIdxOfGoal]);
+  if(eq || (ac.getState() == actionlib::SimpleClientGoalState::ABORTED))
   {
+//    ROS_INFO("eq: %d, state: %s", e, ac.getState().toString().c_str());
     ac.sendGoal(_currentGoal);
 
   }
@@ -269,7 +273,15 @@ void GoalsNode::process()
 
     }
 
-
+    std_msgs::Bool isAborted;
+    if(ac.getState() == actionlib::SimpleClientGoalState::ABORTED)
+    {
+      isAborted.data = true;
+    }else
+    {
+      isAborted.data = false;
+    }
+    _actionState.publish(isAborted);
     ros::spinOnce();
 		loop_rate.sleep();		
 	}
